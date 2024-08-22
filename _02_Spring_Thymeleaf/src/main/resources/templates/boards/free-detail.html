@@ -23,6 +23,7 @@
                 }
 
                 $("#uploadFiles").on("change", (e) => {
+                    console.log(e);
                     const files = e.target.files;
 
                     const fileArr = Array.prototype.slice.call(files);

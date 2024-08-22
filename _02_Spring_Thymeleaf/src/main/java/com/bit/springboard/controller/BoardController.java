@@ -78,6 +78,11 @@ public class BoardController {
 
 //        mav.addObject("noticeList", boardService.findAll(searchMap, cri));
         mav.addObject("noticeList", noticeList);
+        mav.addObject("searchMap", searchMap);
+
+        int total = boardService.findTotalCnt(searchMap);
+
+        mav.addObject("page", new NoticePageDto(cri, total));
 
         mav.setViewName("boards/notice-list");
         return mav;
@@ -158,7 +163,7 @@ public class BoardController {
         return mav;
     }
 
-    @PatchMapping("{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<?> modify(@PathVariable("id") int id,
                                     BoardDto boardDto,
                                     MultipartFile[] uploadFiles,
@@ -182,6 +187,7 @@ public class BoardController {
 
             return ResponseEntity.ok(responseDto);
         } catch (Exception e) {
+            e.printStackTrace();
             responseDto.setStatusCode(500);
             responseDto.setStatusMessage(e.getMessage());
             return ResponseEntity.internalServerError().body(responseDto);
@@ -232,6 +238,42 @@ public class BoardController {
         }
 
 
+    }
+
+    @PostMapping("/notice-list-ajax")
+    public ResponseEntity<?> noticeList(@RequestParam Map<String, String> searchMap, Criteria cri) {
+        ResponseDto<Map<String, Object>> responseDto = new ResponseDto<>();
+
+        try {
+            boardService = applicationContext.getBean("noticeServiceImpl", BoardService.class);
+
+            List<Map<String, Object>> noticeList = new ArrayList<>();
+
+            boardService.findAll(searchMap, cri).forEach(boardDto -> {
+                List<BoardFileDto> boardFileDtoList = boardService.findFilesById(boardDto.getId());
+
+                Map<String, Object> map = new HashMap<>();
+
+                map.put("notice", boardDto);
+
+                if(boardFileDtoList.size() > 0) {
+                    map.put("file", boardFileDtoList.get(0));
+                }
+
+                noticeList.add(map);
+            });
+
+            responseDto.setStatusCode(200);
+            responseDto.setStatusMessage("OK");
+            responseDto.setDataList(noticeList);
+
+            return ResponseEntity.ok(responseDto);
+        } catch (Exception e) {
+            responseDto.setStatusCode(500);
+            responseDto.setStatusMessage(e.getMessage());
+
+            return ResponseEntity.internalServerError().body(responseDto);
+        }
     }
 
 

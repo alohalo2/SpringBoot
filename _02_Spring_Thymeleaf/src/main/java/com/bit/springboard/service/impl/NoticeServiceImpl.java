@@ -7,11 +7,15 @@ import com.bit.springboard.dto.Criteria;
 import com.bit.springboard.mapper.FreeMapper;
 import com.bit.springboard.mapper.NoticeMapper;
 import com.bit.springboard.service.BoardService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UrlPathHelper;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -19,6 +23,7 @@ import java.util.*;
 public class NoticeServiceImpl implements BoardService {
     private final NoticeMapper noticeMapper;
     private final FileUtils fileUtils;
+    private final UrlPathHelper mvcUrlPathHelper;
 
 //    public NoticeServiceImpl(NoticeMapper noticeMapper, FileUtils fileUtils) {
 //        this.noticeMapper = noticeMapper;
@@ -63,7 +68,7 @@ public class NoticeServiceImpl implements BoardService {
 
     @Override
     public BoardDto findById(int id) {
-        return null;
+        return noticeMapper.findById(id);
     }
 
     @Override
@@ -73,7 +78,75 @@ public class NoticeServiceImpl implements BoardService {
 
     @Override
     public BoardDto modify(BoardDto boardDto, MultipartFile[] uploadFiles, MultipartFile[] changeFiles, String originFiles) {
-        return null;
+        List<BoardFileDto> originFileList = new ArrayList<>();
+
+        try {
+            originFileList = new ObjectMapper().readValue(
+                    originFiles,
+                    new TypeReference<List<BoardFileDto>>() {}
+            );
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        List<BoardFileDto> uFileList = new ArrayList<>();
+
+        if(originFileList.size() > 0) {
+            originFileList.forEach(boardFileDto -> {
+                System.out.println(boardFileDto);
+                if(boardFileDto.getFilestatus().equals("U") && changeFiles != null){
+                    Arrays.stream(changeFiles).forEach(file -> {
+                        if(boardFileDto.getNewfilename().equals(file.getOriginalFilename())) {
+                            BoardFileDto updateBoardFileDto = fileUtils.parserFileInfo(file, "notice/");
+
+                            updateBoardFileDto.setBoard_id(boardDto.getId());
+                            updateBoardFileDto.setId(boardFileDto.getId());
+                            updateBoardFileDto.setFilestatus("U");
+
+                            uFileList.add(updateBoardFileDto);
+                        }
+                    });
+                } else if(boardFileDto.getFilestatus().equals("D")) {
+                    BoardFileDto deleteBoardFileDto = new BoardFileDto();
+
+                    deleteBoardFileDto.setBoard_id(boardDto.getId());
+                    deleteBoardFileDto.setId(boardFileDto.getId());
+                    deleteBoardFileDto.setFilestatus("D");
+
+                    fileUtils.deleteFile("notice/", boardFileDto.getFilename());
+
+                    uFileList.add(deleteBoardFileDto);
+                }
+            });
+        }
+
+        if(uploadFiles != null && uploadFiles.length > 0) {
+            Arrays.stream(uploadFiles).forEach(file -> {
+                if(file.getOriginalFilename() != null && !file.getOriginalFilename().equals("")) {
+                    BoardFileDto postBoardFileDto = fileUtils.parserFileInfo(file, "notice/");
+
+                    postBoardFileDto.setBoard_id(boardDto.getId());
+                    postBoardFileDto.setFilestatus("I");
+
+                    uFileList.add(postBoardFileDto);
+                }
+            });
+        }
+
+        boardDto.setModdate(LocalDateTime.now());
+        noticeMapper.modify(boardDto);
+
+        uFileList.forEach(boardFileDto -> {
+            if(boardFileDto.getFilestatus().equals("U")) {
+                noticeMapper.modifyFile(boardFileDto);
+            } else if(boardFileDto.getFilestatus().equals("D")) {
+                noticeMapper.removeFile(boardFileDto);
+            } else if(boardFileDto.getFilestatus().equals("I")) {
+                noticeMapper.postFile(boardFileDto);
+            }
+        });
+
+        return noticeMapper.findById(boardDto.getId());
     }
 
     @Override
@@ -83,6 +156,8 @@ public class NoticeServiceImpl implements BoardService {
 
     @Override
     public void remove(int id) {
+        noticeMapper.removeFiles(id);
+        noticeMapper.remove(id);
 
     }
 
