@@ -2,32 +2,30 @@
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="layouts/layout2">
+      layout:decorate="~{/layouts/layout2}">
 <head>
     <th:block layout:fragment="script">
         <script>
             const uploadFiles = [];
-            const originFiles = [];
             const changeFiles = [];
+            const originFiles = [];
 
             $(() => {
-                for(let i = 0; i < $("#fileCnt").val(); i++) {
+                for(let i = 0; i < $("#filecnt").val(); i++) {
                     const originFileObj = {
                         board_id: $("#id").val(),
                         id: $("#fileId" + i).val(),
                         filename: $("#filename" + i).val(),
                         filestatus: "N"
-                    };
+                    }
 
                     originFiles.push(originFileObj);
                 }
 
                 $("#uploadFiles").on("change", (e) => {
-                    console.log(e);
                     const files = e.target.files;
 
                     const fileArr = Array.prototype.slice.call(files);
-
 
                     for(file of fileArr) {
                         imageLoader(file);
@@ -37,12 +35,10 @@
                 $("#modify-form").on("submit", (e) => {
                     e.preventDefault();
 
-                    $("#regdate").val(`${$("#regdate").val()}T00:00:00`);
-                    $("#moddate").val(`${$("#moddate").val()}T00:00:00`);
-
                     let dataTransfer1 = new DataTransfer();
                     let dataTransfer2 = new DataTransfer();
 
+                    // $("#uploadFiles")[0].files = uploadFiles;
                     for(i in uploadFiles) {
                         const file = uploadFiles[i];
                         dataTransfer1.items.add(file);
@@ -53,49 +49,54 @@
                     for(i in changeFiles) {
                         const file = changeFiles[i];
                         dataTransfer2.items.add(file);
-
                     }
 
                     $("#changeFiles")[0].files = dataTransfer2.files;
-                    console.log(originFiles);
+
                     $("#originFiles").val(JSON.stringify(originFiles));
 
                     const formData = new FormData($("#modify-form")[0]);
 
+                    // FormData 객체에 새로운 키, 밸류 형태의 데이터를 추가할 때는 append 메소드를 사용
+                    // formData.append("aaa", 1111);
+                    // formData.append("bbb", 2222);
+
+                    // FormData에 이미 존재하는 키의 밸류를 변경하려면 set 메소드를 사용
+                    formData.set("regdate", `${$("#regdate").val()}T00:00:00`);
+                    formData.set("moddate", `${$("#moddate").val()}T00:00:00`);
+
                     $.ajax({
-                        enctype: "multipart/form-data",
                         url: `/boards/${$("#id").val()}`,
                         type: "patch",
                         data: formData,
+                        enctype: "multipart/form-data",
                         processData: false,
                         contentType: false,
                         success: (obj) => {
-                            // console.log(obj);
                             if(obj.statusCode === 200) {
                                 alert("정상적으로 수정되었습니다.");
-                                location.href = `/boards/${obj.data.id}?type=free`;
+                                location.href = `/boards/${obj.data.id}?type=notice`;
                             }
-                        }, error: (err) => {
+                        },
+                        error: (err) => {
                             console.log(err);
                         }
-                    });
-
+                    })
                 });
 
                 $("#btn-delete").on("click", (e) => {
-                   $.ajax({
-                       url:`/boards/${$("#id").val()}?type=free`,
-                       type: "delete",
-                       success: (obj) => {
-                           alert("정상적으로 삭제되었습니다.");
-                           location.href = "/boards/free-list";
-                       },
-                       error: (err) => {
-                           console.log(err);
-                       }
-                   })
+                    $.ajax({
+                        url: `/boards/${$("#id").val()}?type=notice`,
+                        type: "delete",
+                        success: (obj) => {
+                            alert("정상적으로 삭제되었습니다.");
+                            location.href = '/boards/notice-list';
+                        },
+                        error: (err) => {
+                            console.log(err);
+                        }
+                    });
                 });
-
             });
 
             const fileClick = (fileId) => {
@@ -103,6 +104,7 @@
             }
 
             const changeFile = (fileId, e) => {
+                console.log(e);
                 const files = e.target.files;
 
                 const fileArr = Array.prototype.slice.call(files);
@@ -118,7 +120,7 @@
                     if(fileArr[0].name.match(/(.*?)\.(jpg|jpeg|png|gif|bmp)$/)) {
                         img.src = event.target.result;
                     } else {
-                        img.src = '/images/defaultFileImg.png';
+                        img.src = "/images/defaultFileImg.png";
                     }
 
                     p.textContent = fileArr[0].name;
@@ -146,6 +148,7 @@
                 }
 
                 const parentDiv = element.parentNode;
+
                 $(parentDiv).remove();
             }
 
@@ -165,11 +168,10 @@
                         img.src = "/images/defaultFileImg.png";
                     }
 
-                    $("#preview").append(makeDiv(img,file));
+                    $("#preview").append(makeDiv(img, file));
                 }
 
                 reader.readAsDataURL(file);
-
             }
 
             const makeDiv = (img, file) => {
@@ -201,7 +203,6 @@
 
                     for(i in uploadFiles) {
                         const file = uploadFiles[i];
-
                         dataTransfer.items.add(file);
                     }
 
@@ -212,7 +213,6 @@
                 }
 
                 let p = document.createElement("p");
-
                 p.classList.add("upload-file-name");
 
                 p.textContent = file.name;
@@ -223,23 +223,18 @@
 
                 return div;
             }
-
-            const increaseCnt = (cnt) => {
-
-            }
-
         </script>
     </th:block>
 </head>
 <body>
     <main layout:fragment="content">
         <div class="container w-50 mt-5 mb-5">
-            <h4>자유게시글 상세</h4>
+            <h4>공지사항 상세</h4>
         </div>
         <div class="container mt-3 w-50">
             <form id="modify-form" action="#" method="post">
                 <input type="hidden" id="id" name="id" th:value="${board.id}">
-                <input type="hidden" id="type" name="type" value="free">
+                <input type="hidden" id="type" name="type" value="notice">
                 <input type="hidden" id="originFiles" name="originFiles">
                 <div class="form-group">
                     <label for="title">제목</label>
@@ -251,19 +246,22 @@
                 </div>
                 <div class="form-group mt-3">
                     <label for="content">내용</label>
-                    <textarea class="form-control" id="content" name="content" rows="10" required th:text="${board.content}">게시글</textarea>
+                    <textarea class="form-control" id="content" name="content" rows="10" th:text="${board.content}" required></textarea>
                 </div>
                 <div class="form-group mt-3">
                     <label for="regdate">등록일</label>
-                    <input type="text" class="form-control" id="regdate" name="regdate" th:value="${#temporals.format(board.regdate, 'yyyy-MM-dd')}" required>
+                    <input type="text" class="form-control" id="regdate" name="regdate"
+                           th:value="${#temporals.format(board.regdate, 'yyyy-MM-dd')}" required>
                 </div>
                 <div class="form-group mt-3">
                     <label for="moddate">수정일</label>
-                    <input type="text" class="form-control" id="moddate" name="moddate" th:value="${#temporals.format(board.moddate, 'yyyy-MM-dd')}" required>
+                    <input type="text" class="form-control" id="moddate" name="moddate"
+                           th:value="${#temporals.format(board.moddate, 'yyyy-MM-dd')}" required>
                 </div>
                 <div class="form-group mt-3">
                     <label for="cnt">조회수</label>
-                    <input type="text" class="form-control" id="cnt" name="cnt" th:value="${board.cnt}"  required>
+                    <input type="text" class="form-control" id="cnt" name="cnt"
+                           th:value="${board.cnt}" required>
                 </div>
                 <div class="form-group mt-3">
                     <label for="uploadFiles">파일첨부</label>
@@ -276,32 +274,36 @@
                         </p>
                         <div id="preview" class="mt-3 text-center"
                              data-placeholder="파일을 첨부하려면 파일선택 버튼을 누르세요.">
-                            <div class="upload-file-div" th:each="file, fileStat : ${fileList}">
-                                <input type="hidden" th:id="'fileId' + ${fileStat.index}" th:value="${file.id}">
-                                <input type="hidden" th:id="'filename' + ${fileStat.index}" th:value="${file.filename}">
-                                <input type="file" th:id="'changeFile' + ${file.id}" th:name="'changeFile' + ${file.id}"
+                            <div class="upload-file-div" th:each="file : ${board.boardFileDtoList}">
+                                <input type="hidden" th:id="'fileId' + ${fileStat.index}"
+                                       th:value="${file.id}">
+                                <input type="hidden" th:id="'filename' + ${fileStat.index}"
+                                       th:value="${file.filename}">
+                                <input type="file" th:id="'changeFile' + ${file.id}"
+                                       th:name="'changeFile' + ${file.id}"
                                        style="display: none;"
                                        th:onchange="changeFile([[${file.id}]], event)">
-                                <input th:if="${fileStat.last}" type="hidden" id="fileCnt" name="fileCnt" th:value="${fileStat.count}">
-                                <img th:if="${file.filetype} == 'image'"
+                                <input th:if="${fileStat.last}" type="hidden"
+                                       id="filecnt" name="filecnt" th:value="${fileStat.count}">
+                                <img th:if="${file.filetype == 'image'}"
                                      th:id="'img' + ${file.id}"
-                                     th:src="@{'http://kr.object.ncloudstorage.com/bitcamp119/free/' + ${file.filename}}"
+                                     th:src="@{'https://kr.object.ncloudstorage.com/bitcamp119/notice/' + ${file.filename}}"
                                      class="upload-file"
                                      th:alt="${file.fileoriginname}"
                                      th:onclick="fileClick([[${file.id}]])">
-                                <img th:unless="${file.filetype} == 'image'"
+                                <img th:unless="${file.filetype == 'image'}"
                                      th:id="'img' + ${file.id}"
                                      src="/images/defaultFileImg.png"
                                      class="upload-file"
                                      th:alt="${file.fileoriginname}"
                                      th:onclick="fileClick([[${file.id}]])">
                                 <input type="button" value="x"
-                                     class="upload-file-delete-btn"
-                                     th:delete-file="${file.id}"
-                                     onclick="deleteFile(event)">
+                                       class="upload-file-delete-btn"
+                                       th:delete-file="${file.id}"
+                                       onclick="deleteFile(event)">
                                 <p th:id="'filename' + ${file.id}"
-                                     class="upload-file-name"
-                                     th:text="${file.fileoriginname}"></p>
+                                   class="upload-file-name"
+                                   th:text="${file.fileoriginname}"></p>
                             </div>
                         </div>
                     </div>

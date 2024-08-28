@@ -27,26 +27,21 @@
 
                     const fileArr = Array.prototype.slice.call(files);
 
-                    for(file of fileArr) { // of는 value를 순회
+                    for(file of fileArr) {
                         imageLoader(file);
                     }
-
-                    // for(file in fileArr) { // in은 index를 순회
-                    //     console.log(file);
-                    // }
                 });
 
                 $("#modify-form").on("submit", (e) => {
                     e.preventDefault();
 
-                    let dataTransfer1 = new DataTransfer(); // 이벤트에서 데이터를 저장하고 전송할 때 사용되는 인터페이스
+                    let dataTransfer1 = new DataTransfer();
                     let dataTransfer2 = new DataTransfer();
 
                     // $("#uploadFiles")[0].files = uploadFiles;
                     for(i in uploadFiles) {
                         const file = uploadFiles[i];
                         dataTransfer1.items.add(file);
-                        console.log(file);
                     }
 
                     $("#uploadFiles")[0].files = dataTransfer1.files;
@@ -66,7 +61,7 @@
                     // formData.append("aaa", 1111);
                     // formData.append("bbb", 2222);
 
-                    // FornData에 이미 존재하는 키의 밸류를 변경하려면 set 메소드를 사용
+                    // FormData에 이미 존재하는 키의 밸류를 변경하려면 set 메소드를 사용
                     formData.set("regdate", `${$("#regdate").val()}T00:00:00`);
                     formData.set("moddate", `${$("#moddate").val()}T00:00:00`);
 
@@ -87,7 +82,6 @@
                             console.log(err);
                         }
                     })
-
                 });
 
                 $("#btn-delete").on("click", (e) => {
@@ -101,9 +95,8 @@
                         error: (err) => {
                             console.log(err);
                         }
-                    })
-                })
-
+                    });
+                });
             });
 
             const fileClick = (fileId) => {
@@ -253,7 +246,7 @@
                 </div>
                 <div class="form-group mt-3">
                     <label for="content">내용</label>
-                    <textarea class="form-control" id="content" name="content" rows="10" required th:text="${board.content}">공지사항</textarea>
+                    <textarea class="form-control" id="content" name="content" rows="10" th:text="${board.content}" required></textarea>
                 </div>
                 <div class="form-group mt-3">
                     <label for="regdate">등록일</label>
@@ -281,7 +274,7 @@
                         </p>
                         <div id="preview" class="mt-3 text-center"
                              data-placeholder="파일을 첨부하려면 파일선택 버튼을 누르세요.">
-                            <div class="upload-file-div" th:each="file : ${fileList}">
+                            <div class="upload-file-div" th:each="file : ${board.boardFileDtoList}">
                                 <input type="hidden" th:id="'fileId' + ${fileStat.index}"
                                        th:value="${file.id}">
                                 <input type="hidden" th:id="'filename' + ${fileStat.index}"

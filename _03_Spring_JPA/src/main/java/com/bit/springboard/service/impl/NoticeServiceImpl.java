@@ -4,16 +4,21 @@ import com.bit.springboard.common.FileUtils;
 import com.bit.springboard.dto.BoardDto;
 import com.bit.springboard.dto.BoardFileDto;
 import com.bit.springboard.dto.Criteria;
-import com.bit.springboard.mapper.FreeMapper;
+import com.bit.springboard.entity.Member;
+import com.bit.springboard.entity.Notice;
+import com.bit.springboard.entity.NoticeFile;
 import com.bit.springboard.mapper.NoticeMapper;
+import com.bit.springboard.repository.MemberRepository;
+import com.bit.springboard.repository.NoticeFileRepository;
+import com.bit.springboard.repository.NoticeRepository;
 import com.bit.springboard.service.BoardService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.UrlPathHelper;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -23,7 +28,9 @@ import java.util.*;
 public class NoticeServiceImpl implements BoardService {
     private final NoticeMapper noticeMapper;
     private final FileUtils fileUtils;
-    private final UrlPathHelper mvcUrlPathHelper;
+    private final MemberRepository memberRepository;
+    private final NoticeRepository noticeRepository;
+    private final NoticeFileRepository noticeFileRepository;
 
 //    public NoticeServiceImpl(NoticeMapper noticeMapper, FileUtils fileUtils) {
 //        this.noticeMapper = noticeMapper;
@@ -32,47 +39,50 @@ public class NoticeServiceImpl implements BoardService {
 
     @Override
     public BoardDto post(BoardDto boardDto, MultipartFile[] uploadFiles) {
+        Member writer = memberRepository.findByNickname(boardDto.getNickname()).orElseThrow(() -> new RuntimeException("member is not exist"));
 
-        List<BoardFileDto> boardFileDtoList = new ArrayList<>();
+        boardDto.setRegdate(LocalDateTime.now());
+        boardDto.setModdate(LocalDateTime.now());
+
+        Notice notice = boardDto.toNoticeEntity(writer);
 
         if(uploadFiles != null && uploadFiles.length > 0) {
             Arrays.stream(uploadFiles).forEach(file -> {
-                if(file.getOriginalFilename() != null && !file.getOriginalFilename().equals("")) {
+                if(!file.getOriginalFilename().equals("") && file.getOriginalFilename() != null) {
                     BoardFileDto boardFileDto = fileUtils.parserFileInfo(file, "notice/");
+                    NoticeFile noticeFile = boardFileDto.toNoticeFileEntity(notice);
 
-                    boardFileDtoList.add(boardFileDto);
+                    notice.getNoticeFileList().add(noticeFile);
                 }
             });
         }
 
-        noticeMapper.post(boardDto);
+//        notice.setRegdate(LocalDateTime.now());
+//        notice.setModdate(LocalDateTime.now());
 
-        if(boardFileDtoList.size() > 0) {
-            boardFileDtoList.forEach(boardFileDto -> boardFileDto.setBoard_id(boardDto.getId()));
-            noticeMapper.postFiles(boardFileDtoList);
+        return noticeRepository.save(notice).toDto();
+    }
+
+    @Override
+    public Page<BoardDto> findAll(Map<String, String> searchMap, Pageable pageable) {
+        Page<Notice> noticePage = noticeRepository.findAll(pageable);
+
+        if(searchMap.get("searchKeyword") != null) {
+            noticePage = noticeRepository.findByTitleContainingOrContentContainingOrMemberNicknameContaining(
+                    pageable, searchMap.get("searchKeyword"), searchMap.get("searchKeyword"), searchMap.get("searchKeyword")
+            );
         }
 
-        return noticeMapper.findById(boardDto.getId());
+        return noticePage.map(Notice::toDto);
     }
 
     @Override
-    public List<BoardDto> findAll(Map<String, String> searchMap, Criteria cri) {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("search", searchMap);
-
-        cri.setStartNum((cri.getPageNum() - 1) * cri.getAmount());
-        paramMap.put("cri", cri);
-
-        return noticeMapper.findAll(paramMap);
+    public BoardDto findById(Long id) {
+        return noticeRepository.findById(id).orElseThrow(() -> new RuntimeException("notice is not exist")).toDto();
     }
 
     @Override
-    public BoardDto findById(int id) {
-        return noticeMapper.findById(id);
-    }
-
-    @Override
-    public List<BoardFileDto> findFilesById(int id) {
+    public List<BoardFileDto> findFilesById(Long id) {
         return noticeMapper.findFilesById(id);
     }
 
@@ -85,7 +95,7 @@ public class NoticeServiceImpl implements BoardService {
                     originFiles,
                     new TypeReference<List<BoardFileDto>>() {}
             );
-        } catch (Exception e) {
+        } catch(Exception e) {
             System.out.println(e.getMessage());
         }
 
@@ -93,8 +103,7 @@ public class NoticeServiceImpl implements BoardService {
 
         if(originFileList.size() > 0) {
             originFileList.forEach(boardFileDto -> {
-                System.out.println(boardFileDto);
-                if(boardFileDto.getFilestatus().equals("U") && changeFiles != null){
+                if(boardFileDto.getFilestatus().equals("U") && changeFiles != null) {
                     Arrays.stream(changeFiles).forEach(file -> {
                         if(boardFileDto.getNewfilename().equals(file.getOriginalFilename())) {
                             BoardFileDto updateBoardFileDto = fileUtils.parserFileInfo(file, "notice/");
@@ -133,32 +142,57 @@ public class NoticeServiceImpl implements BoardService {
             });
         }
 
-        boardDto.setModdate(LocalDateTime.now());
-        noticeMapper.modify(boardDto);
+//        boardDto.setModdate(LocalDateTime.now());
+//        noticeMapper.modify(boardDto);
+//
+//        uFileList.forEach(boardFileDto -> {
+//            if(boardFileDto.getFilestatus().equals("U")) {
+//                noticeMapper.modifyFile(boardFileDto);
+//            } else if(boardFileDto.getFilestatus().equals("D")) {
+//                noticeMapper.removeFile(boardFileDto);
+//            } else if(boardFileDto.getFilestatus().equals("I")) {
+//                noticeMapper.postFile(boardFileDto);
+//            }
+//        });
 
-        uFileList.forEach(boardFileDto -> {
-            if(boardFileDto.getFilestatus().equals("U")) {
-                noticeMapper.modifyFile(boardFileDto);
-            } else if(boardFileDto.getFilestatus().equals("D")) {
-                noticeMapper.removeFile(boardFileDto);
-            } else if(boardFileDto.getFilestatus().equals("I")) {
-                noticeMapper.postFile(boardFileDto);
-            }
-        });
+        Notice notice = noticeRepository.findById(boardDto.getId()).orElseThrow(
+                () -> new RuntimeException("memeber is not exist"));
 
-        return noticeMapper.findById(boardDto.getId());
+        notice.setTitle(boardDto.getTitle());
+        notice.setContent(boardDto.getContent());
+        notice.setModdate(LocalDateTime.now()/*boardDto.getModdate()*/);
+
+        uFileList.forEach(
+                boardFileDto -> {
+                    if(boardFileDto.getFilestatus().equals("U") || boardFileDto.getFilestatus().equals("I")) {
+                        notice.getNoticeFileList().add(boardFileDto.toNoticeFileEntity(notice));
+                    } else if(boardFileDto.getFilestatus().equals("D")) {
+                        fileUtils.deleteFile("notice/", boardFileDto.getFilename());
+                        noticeFileRepository.delete(boardFileDto.toNoticeFileEntity(notice));
+                    }
+                }
+        );
+
+        return noticeRepository.save(notice).toDto();
     }
 
     @Override
-    public void updateBoardCnt(int id) {
-        noticeMapper.updateBoardCnt(id);
+    public void updateBoardCnt(Long id) {
+        Notice notice = noticeRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("notice not exist"));
+
+        notice.setCnt(notice.getCnt());
+
+        noticeRepository.save(notice);
     }
 
     @Override
-    public void remove(int id) {
-        noticeMapper.removeFiles(id);
-        noticeMapper.remove(id);
+    public void remove(Long id) {
+        List<NoticeFile> noticeFileList = noticeFileRepository.findByNoticeId(id);
 
+        noticeFileList.forEach(noticeFile -> fileUtils.deleteFile("notice/", noticeFile.getFilename()));
+
+        noticeRepository.deleteById(id);
     }
 
     @Override

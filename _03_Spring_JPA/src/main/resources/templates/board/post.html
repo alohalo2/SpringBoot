@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"
-       xmlns:th="http://www.thymeleaf.org"
-       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-       layout:decorate="~{layouts/layout2}">
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{/layouts/layout2}">
 <head>
     <th:block layout:fragment="script">
         <script>
@@ -24,11 +24,10 @@
                         img.src = "/images/defaultFileImg.png";
                     }
 
-                    $("#preview").append(makeDiv(img,file));
+                    $("#preview").append(makeDiv(img, file));
                 }
 
                 reader.readAsDataURL(file);
-
             }
 
             const makeDiv = (img, file) => {
@@ -60,7 +59,6 @@
 
                     for(i in uploadFiles) {
                         const file = uploadFiles[i];
-
                         dataTransfer.items.add(file);
                     }
 
@@ -71,7 +69,6 @@
                 }
 
                 let p = document.createElement("p");
-
                 p.classList.add("upload-file-name");
 
                 p.textContent = file.name;
@@ -84,31 +81,29 @@
             }
 
             $(() => {
-                $("#uploadFiles").on("change", (e) => {
+               $("#uploadFiles").on("change", (e) => {
                     const files = e.target.files;
 
                     const fileArr = Array.prototype.slice.call(files);
 
-
                     for(file of fileArr) {
                         imageLoader(file);
                     }
-                });
-
+               });
 
                $("#post-form").on("submit", (e) => {
-                   e.preventDefault();
+                  e.preventDefault();
 
-                   let dataTransfer = new DataTransfer();
+                  let dataTransfer = new DataTransfer();
 
-                   for(i in uploadFiles) {
-                       const file = uploadFiles[i];
-                       dataTransfer.items.add(file);
-                   }
+                  for(i in uploadFiles) {
+                      const file = uploadFiles[i];
+                      dataTransfer.items.add(file);
+                  }
 
-                   $("#uploadFiles")[0].files = dataTransfer.files;
+                  $("#uploadFiles")[0].files = dataTransfer.files;
 
-                   // ajax에서 첨부파일을 전송하려면 form.serialize() 형식으로는 불가능하다.
+                  // ajax에서 첨부파일을 전송하려면 form.serialize() 형식으로는 불가능하다.
                    // ?title=title&content=content&...
                    // FormData 객체를 생성해서 전송해야 한다.
                    const formData = new FormData($("#post-form")[0]);
@@ -117,28 +112,28 @@
                    // enctype을 multipart/form-data로 지정
                    // processData를 false로 지정
                    // contentType을 false로 지정
-                   $.ajax({
-                       enctype: "multipart/form-data",
-                       url: "/boards",
-                       type: "post",
-                       data: formData,
-                       processData: false,
-                       contentType: false,
-                       success: (obj) => {
-                           console.log(obj);
-                           if(obj.statusCode === 201) {
-                               alert("정상적으로 등록됐습니다.")
-                               if(obj.data.type === "free") {
-                                   location.href = "/boards/free-list";
-                               } else if(obj.data.type === "notice") {
-                                   location.href = "/boards/notice-list";
-                               }
-                           }
-                       },
-                       error: (err) => {
-                           console.log(err);
-                       }
-                   })
+                  $.ajax({
+                      enctype: "multipart/form-data",
+                      url: "/boards",
+                      type: "post",
+                      data: formData,
+                      processData: false,
+                      contentType: false,
+                      success: (obj) => {
+                          console.log(obj);
+                          if(obj.statusCode === 201) {
+                              alert("정상적으로 등록됐습니다.");
+                              if(obj.data.type === "free") {
+                                  location.href = "/boards/free-list";
+                              } else if(obj.data.type === "notice") {
+                                  location.href = "/boards/notice-list";
+                              }
+                          }
+                      },
+                      error: (err) => {
+                          console.log(err);
+                      }
+                  })
                });
             });
         </script>
@@ -151,7 +146,7 @@
         </div>
         <div class="container mt-3 w-50">
             <form id="post-form" action="#">
-                <div class="form-group" th:if="${session.loginMember != null && session.loginMember.role == 'ADMIN'}">
+                <div class="form-group" th:if="${session.loginMember != null && session.loginMember.role == 'ROLE_ADMIN'}">
                     <label for="type">카테고리</label>
                     <select class="form-select" name="type" id="type">
                         <option value="free" selected>자유게시판</option>
@@ -164,7 +159,8 @@
                 </div>
                 <div class="form-group mt-3">
                     <label for="nickname">작성자</label>
-                    <input type="text" class="form-control" id="nickname" name="nickname" th:value="${session.loginMember.nickname}" readonly required>
+                    <input type="text" class="form-control" id="nickname" name="nickname"
+                           th:value="${session.loginMember.nickname}" readonly required>
                 </div>
                 <div class="form-group mt-3">
                     <label for="content">내용</label>
