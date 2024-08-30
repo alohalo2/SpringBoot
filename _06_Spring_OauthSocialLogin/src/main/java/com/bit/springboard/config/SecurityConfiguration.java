@@ -1,7 +1,10 @@
 package com.bit.springboard.config;
 
 import com.bit.springboard.handler.LoginFailureHandler;
+<<<<<<< HEAD
 import com.bit.springboard.oauth.OAuth2UserServiceImpl;
+=======
+>>>>>>> b9d78aa26fac4abae323212beef8cda07166f268
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -19,9 +22,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
     private final LoginFailureHandler loginFailureHandler;
+<<<<<<< HEAD
     // loadUser를 실행시킬 서비스 클래스
     private final OAuth2UserServiceImpl oAuth2UserService;
 
+=======
+>>>>>>> b9d78aa26fac4abae323212beef8cda07166f268
     // 비밀번호 암호화 객체를 Bean 객체로 등록
     // 비밀번호 암호화 객체의 역할은 로그인할 때 입력된 암호화 DB에 저장되어 있는 암호화된 비밀번호가
     // 일치하는지 비교. 비밀번호 암호화 객체에 matches메소드(암호화되지 않은 비밀번호, 암호화된 비밀번호)
@@ -73,6 +79,7 @@ public class SecurityConfiguration {
                     formlogin.failureHandler(loginFailureHandler);
                     // 로그인 성공시 리다이렉트할 요청 주소 지정
                     formlogin.defaultSuccessUrl("/");
+<<<<<<< HEAD
                 })
                 // OAuth2 기반 로그인 처리
                 .oauth2Login((oauth2Login) -> {
@@ -86,6 +93,9 @@ public class SecurityConfiguration {
                     oauth2Login.userInfoEndpoint(userInfoEndpointConfig -> {
                         userInfoEndpointConfig.userService(oAuth2UserService);
                     });
+=======
+
+>>>>>>> b9d78aa26fac4abae323212beef8cda07166f268
                 })
                 // 로그아웃 처리
                 .logout((logout) -> {

@@ -23,7 +23,11 @@ public class Member {
     )
     private Long id;
 
+<<<<<<< HEAD
     @Column(unique = true, length = 50)
+=======
+    @Column(unique = true, length = 20)
+>>>>>>> b9d78aa26fac4abae323212beef8cda07166f268
     private String username;
 
     @Column(length = 300)
